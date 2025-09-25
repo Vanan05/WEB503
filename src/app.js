@@ -3,6 +3,9 @@ import router from "./routers/index.js";
 
 const app = express();
 
+// Middleware để parse JSON từ body
+app.use(express.json());
+
 // Middleware log thời gian + URL
 const logRequestTime = (req, res, next) => {
   console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.url}`);
