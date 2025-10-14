@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import postRouter from "./routers/post";
 import authorRouter from "./routers/author";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 const app = express();
 
@@ -15,9 +16,20 @@ mongoose
   .catch((err) => console.error("Could not connect to MongoDB:", err));
 
 // Model Author
-app.use("/api/posts", postRouter);
+app.use("/api/posts", postRouter)
 
-app.use("/api/authors", authorRouter);
+app.use("/api/auth", authorRouter);
+
+export const registerUser = async (req, res) => {
+  const userExisted = await User.findOne({ email: req.body.email });
+
+  if (userExisted) {
+    return res.json("Error : user da ton tai");
+  }
+  req.body.password = await bcrypt.hash(req.body.password, 10);
+  const newUser = await User.create(req.body);
+  res.json(newUser);
+};
 
 //------------------------------
 // Register User
@@ -47,6 +59,26 @@ app.post("/api/auth/register", async (req, res) => {
 
   const newUser = await User.create(req.body);
   res.json(newUser);
+});
+
+// 2. Route: api/auth/login
+app.post("/api/auth/login", async (req, res) => {
+  const user = await User.findOne({ email: req.body.email });
+  // check user co trong db ko
+  if (!user) {
+    return res.status(401).json("Error: khong xac thuc duoc");
+  }
+
+  // so sanh password
+  const isMatch = await bcrypt.compare(req.body.password, user.password);
+
+  if (!isMatch) {
+    return res.status(401).json("Error: khong xac thuc duoc");
+  }
+
+  const token = jwt.sign({ id: user._id }, "khoa", { expiresIn: "1h" });
+  user.password = undefined;
+  res.json({ user, token });
 });
 // -----------------------------
 
